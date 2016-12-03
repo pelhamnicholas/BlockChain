@@ -30,6 +30,7 @@ public class TxHandler {
 		// IMPLEMENT THIS
 		ArrayList<Transaction.Output> outputs = tx.getOutputs();
 		ArrayList<Transaction.Input> inputs = tx.getInputs();
+		ArrayList<UTXO> allUTXO = uPool.getAllUTXO();
 		double value = 0;
 		
 		for (Transaction.Input i : inputs) {
@@ -77,20 +78,28 @@ public class TxHandler {
 	 */
 	public Transaction[] handleTxs(Transaction[] possibleTxs) {
 		// IMPLEMENT THIS
+		ArrayList<Transaction> txPossible = new ArrayList<Transaction>(Arrays.asList(possibleTxs));
 		ArrayList<Transaction> txsList = new ArrayList<Transaction>();
 		ArrayList<Transaction> validTxs = new ArrayList<Transaction>();
 		int numValid = 0;
 		
-		for (int i = 0; i < possibleTxs.length; ++i) {
-			if (isValidTx(possibleTxs[i])) {
-				UTXO ut = new UTXO(possibleTxs[i].getHash(), i);
-				uPool.addUTXO(ut, possibleTxs[i].getOutput(numValid));
-				validTxs.add(possibleTxs[i]);
+		for (Transaction tx : txPossible) {
+			if (isValidTx(tx)) {
+				for (int i = 0; i < tx.numOutputs(); ++i) {
+					UTXO ut = new UTXO(tx.getHash(), i);
+					uPool.addUTXO(ut, tx.getOutput(i));
+				}
+				for (Transaction.Input i : tx.getInputs()) {
+					UTXO ut = new UTXO(i.prevTxHash, i.outputIndex);
+					uPool.removeUTXO(ut);
+				}
+				validTxs.add(tx);
 			} else {
-				txsList.add(possibleTxs[i]);
+				txsList.add(tx);
 			}
 		}
-			
+		
+		/* check for txs that depended on recently added txs */
 		do {
 			numValid = 0;
 			for (Transaction tx : txsList) {
@@ -98,9 +107,14 @@ public class TxHandler {
 					validTxs.add(tx);
 					txsList.remove(tx);
 					
-					UTXO ut = new UTXO(tx.getHash(), numValid);
-					uPool.addUTXO(ut, tx.getOutput(numValid));
-					
+					for (int i = 0; i < tx.numOutputs(); ++i) {
+						UTXO ut = new UTXO(tx.getHash(), i);
+						uPool.addUTXO(ut, tx.getOutput(i));
+					}
+					for (Transaction.Input i : tx.getInputs()) {
+						UTXO ut = new UTXO(i.prevTxHash, i.outputIndex);
+						uPool.removeUTXO(ut);
+					}
 					numValid += 1;
 				}
 			}

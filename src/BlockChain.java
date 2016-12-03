@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Arrays;
 
 /* Block Chain should maintain only limited block nodes to satisfy the functions
    You should not have the all the blocks added to the block chain in memory 
@@ -8,6 +9,12 @@ import java.util.HashMap;
 
 public class BlockChain {
    public static final int CUT_OFF_AGE = 10;
+
+	private ArrayList<BlockNode> heads;  
+	private HashMap<ByteArrayWrapper, BlockNode> H;    
+	private int height;   
+	private BlockNode maxHeightBlock;
+	private TransactionPool txPool;
 
    // all information required in handling a block in block chain
    private class BlockNode {
@@ -40,13 +47,26 @@ public class BlockChain {
     * Assume genesis block is a valid block
     */
    public BlockChain(Block genesisBlock) {
-      // IMPLEMENT THIS
+      // IMPLEMENT THIS 
+	   UTXOPool uPool = new UTXOPool();     
+	   Transaction coinbase = genesisBlock.getCoinbase();     
+	   UTXO utxoCoinbase = new UTXO(coinbase.getHash(), 0);     
+	   uPool.addUTXO(utxoCoinbase, coinbase.getOutput(0));     
+	   BlockNode genesis = new BlockNode(genesisBlock, null, uPool);     
+	   heads = new ArrayList<BlockNode>();     
+	   heads.add(genesis);     
+	   H = new HashMap<ByteArrayWrapper, BlockNode>();     
+	   H.put(new ByteArrayWrapper(genesisBlock.getHash()), genesis);     
+	   height = 1;     
+	   maxHeightBlock = genesis;     
+	   txPool = new TransactionPool();  
    }
 
    /* Get the maximum height block
     */
    public Block getMaxHeightBlock() {
       // IMPLEMENT THIS
+	   return maxHeightBlock.b;
    }
    
    /* Get the UTXOPool for mining a new block on top of 
@@ -54,12 +74,14 @@ public class BlockChain {
     */
    public UTXOPool getMaxHeightUTXOPool() {
       // IMPLEMENT THIS
+	   return maxHeightBlock.uPool;
    }
    
    /* Get the transaction pool to mine a new block
     */
    public TransactionPool getTransactionPool() {
       // IMPLEMENT THIS
+	   return txPool;
    }
 
    /* Add a block to block chain if it is valid.
@@ -72,11 +94,43 @@ public class BlockChain {
     */
    public boolean addBlock(Block b) {
        // IMPLEMENT THIS
+	   if (b.getPrevBlockHash() == null) {
+		   return false;
+	   }
+	   if (height >= CUT_OFF_AGE) {
+		   return false;
+	   }
+	   
+	   UTXOPool uPool = this.maxHeightBlock.uPool;
+	   TxHandler txHandler = new TxHandler(uPool);
+	   Transaction bTxs[] = b.getTransactions().toArray(new Transaction[b.getTransactions().size()]);
+	   Transaction validTxs[];
+	   validTxs = txHandler.handleTxs(bTxs);
+	   if (!Arrays.equals(bTxs, validTxs)) {
+		   return false;
+	   }
+	   
+	   if (this.maxHeightBlock.b.getHash() != b.getPrevBlockHash()) {
+		   return false;
+	   }
+	   
+	   BlockNode blockNode = new BlockNode(b, this.maxHeightBlock, txHandler.getUTXOPool());
+	   this.maxHeightBlock.children.add(blockNode);
+	   this.maxHeightBlock.b.finalize();
+	   
+	   H.put(new ByteArrayWrapper(b.getHash()), blockNode);
+	   maxHeightBlock = blockNode;
+	   
+	   return true;
    }
 
    /* Add a transaction in transaction pool
     */
    public void addTransaction(Transaction tx) {
       // IMPLEMENT THIS
+	   if (txPool.getTransaction(tx.getHash()) == null) {
+		   txPool.addTransaction(tx);
+	   }
+	   return;
    }
 }

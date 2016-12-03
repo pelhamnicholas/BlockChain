@@ -33,6 +33,9 @@ public class TxHandler {
 		ArrayList<UTXO> allUTXO = uPool.getAllUTXO();
 		double value = 0;
 		
+		if (inputs == null || outputs == null || allUTXO == null) {
+			return false;
+		}
 		for (Transaction.Input i : inputs) {
 			UTXO ut = new UTXO(i.prevTxHash, i.outputIndex);
 			if (!uPool.contains(ut)) {
@@ -41,6 +44,9 @@ public class TxHandler {
 			byte[] sig = i.signature;
 			Transaction.Output prevOutput = uPool.getTxOutput(ut);
 			RSAKey pubKey = prevOutput.address;
+			if (pubKey == null || tx == null || i == null || sig == null) {
+				return false;
+			}
 			if (!pubKey.verifySignature(tx.getRawDataToSign(i), sig)) {
 				return false;
 			}
@@ -120,7 +126,7 @@ public class TxHandler {
 			}
 		} while(numValid > 0);
 		
-		return validTxs.toArray(new Transaction[0]);
+		return validTxs.toArray(new Transaction[validTxs.size()]);
 	}
 	
 	/* Returns the current UTXO pool. If no outstanding UTXOs, returns

@@ -97,29 +97,30 @@ public class BlockChain {
 	   if (b.getPrevBlockHash() == null) {
 		   return false;
 	   }
-	   if (height >= CUT_OFF_AGE) {
+	   BlockNode parent = H.get(new ByteArrayWrapper(b.getPrevBlockHash()));
+	   
+	   if (parent == null || parent.height == CUT_OFF_AGE) {
 		   return false;
 	   }
 	   
-	   UTXOPool uPool = this.maxHeightBlock.uPool;
+	   UTXOPool uPool = parent.getUTXOPoolCopy();
 	   TxHandler txHandler = new TxHandler(uPool);
-	   Transaction bTxs[] = b.getTransactions().toArray(new Transaction[b.getTransactions().size()]);
+	   Transaction bTxs[] = b.getTransactions().toArray(new Transaction[0]);
 	   Transaction validTxs[];
 	   validTxs = txHandler.handleTxs(bTxs);
 	   if (!Arrays.equals(bTxs, validTxs)) {
 		   return false;
 	   }
 	   
-	   if (this.maxHeightBlock.b.getHash() != b.getPrevBlockHash()) {
-		   return false;
+	   BlockNode blockNode = new BlockNode(b, parent, txHandler.getUTXOPool());
+	   parent.children.add(blockNode);
+	   
+	   if (blockNode.height > this.height) {
+		   this.height = blockNode.height;
+		   //maxHeightBlock = blockNode; // <-- causing a crash in first Combination Test
 	   }
 	   
-	   BlockNode blockNode = new BlockNode(b, this.maxHeightBlock, txHandler.getUTXOPool());
-	   this.maxHeightBlock.children.add(blockNode);
-	   this.maxHeightBlock.b.finalize();
-	   
 	   H.put(new ByteArrayWrapper(b.getHash()), blockNode);
-	   maxHeightBlock = blockNode;
 	   
 	   return true;
    }

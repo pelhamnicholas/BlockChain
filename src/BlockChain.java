@@ -94,17 +94,21 @@ public class BlockChain {
     */
    public boolean addBlock(Block b) {
        // IMPLEMENT THIS
+	   
+	   /* Verify that Block b is not a Genesis Block */
 	   if (b.getPrevBlockHash() == null) {
 		   //System.out.println("Block Chain: Genesis block");
 		   return false;
 	   }
-	   BlockNode parent = H.get(new ByteArrayWrapper(b.getPrevBlockHash()));
 	   
+	   /* Check that parent Block exists */
+	   BlockNode parent = H.get(new ByteArrayWrapper(b.getPrevBlockHash()));
 	   if (parent == null) {
 		   //System.out.println("Block Chain: parent = null");
 		   return false;
 	   }
 	   
+	   /* Verify that all Transactions in Block b are valid */
 	   UTXOPool uPool = parent.getUTXOPoolCopy();
 	   TxHandler txHandler = new TxHandler(uPool);
 	   Transaction bTxs[] = b.getTransactions().toArray(new Transaction[0]);
@@ -124,17 +128,22 @@ public class BlockChain {
 	   UTXO coinBaseUTXO = new UTXO(coinBaseTx.getHash(), 0);
 	   uPool.addUTXO(coinBaseUTXO, coinBaseTx.getOutput(0));
 	   
-	   for(Transaction t:b.getTransactions())
-		   txPool.removeTransaction(t.getHash());
+	   /* Remove all Transactions in Block b from txPool */
+	   for(Transaction tx : b.getTransactions()) {
+		   txPool.removeTransaction(tx.getHash());
+	   }
 	   
+	   /* Create the new BlockNode */
 	   BlockNode blockNode = new BlockNode(b, parent, uPool);
 	   H.put(new ByteArrayWrapper(b.getHash()), blockNode);
 	   
+	   /* Update height and maxHeightBlock */
 	   if (blockNode.height > this.height) {
 		   this.height = blockNode.height;
 		   maxHeightBlock = blockNode;
 	   }
 	   
+	   /* Update list of heads and remove old BlockNodes */
 	   if (this.height - heads.get(0).height > CUT_OFF_AGE) {
 		   ArrayList<BlockNode> newHeads = new ArrayList<BlockNode>();
 		   for (BlockNode oldHead : heads) {

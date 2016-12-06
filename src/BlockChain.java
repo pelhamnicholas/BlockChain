@@ -95,21 +95,21 @@ public class BlockChain {
    public boolean addBlock(Block b) {
        // IMPLEMENT THIS
 	   if (b.getPrevBlockHash() == null) {
-		   System.out.println("Block Chain: Genesis block");
+		   //System.out.println("Block Chain: Genesis block");
 		   return false;
 	   }
 	   BlockNode parent = H.get(new ByteArrayWrapper(b.getPrevBlockHash()));
 	   
 	   if (parent == null) {
-		   System.out.println("Block Chain: parent = null");
+		   //System.out.println("Block Chain: parent = null");
 		   return false;
 	   }
 	   
 	   UTXOPool uPool = parent.getUTXOPoolCopy();
 
-       Transaction coinBaseTx = b.getCoinbase();
-       UTXO coinBaseUTXO = new UTXO(coinBaseTx.getHash(), 0);
-       uPool.addUTXO(coinBaseUTXO, coinBaseTx.getOutput(0));
+//       Transaction coinBaseTx = b.getCoinbase();
+//       UTXO coinBaseUTXO = new UTXO(coinBaseTx.getHash(), 0);
+//       uPool.addUTXO(coinBaseUTXO, coinBaseTx.getOutput(0));
 	   
 	   TxHandler txHandler = new TxHandler(uPool);
 	   Transaction bTxs[] = b.getTransactions().toArray(new Transaction[0]);
@@ -117,16 +117,32 @@ public class BlockChain {
 	   Transaction validTxs[];
 	   validTxs = txHandler.handleTxs(bTxs);
 	   if (!Arrays.equals(bTxs, validTxs)) {
-		   System.out.println("Block Chain: Invalid Transacction");
+		   //System.out.println("Block Chain: Invalid Transacction");
 		   return false;
 	   }
+
+	   uPool = txHandler.getUTXOPool();
+	   Transaction coinBaseTx = b.getCoinbase();
+	   UTXO coinBaseUTXO = new UTXO(coinBaseTx.getHash(), 0);
+	   uPool.addUTXO(coinBaseUTXO, coinBaseTx.getOutput(0));
 	   
-	   BlockNode blockNode = new BlockNode(b, parent, txHandler.getUTXOPool());
-	   parent.children.add(blockNode);
+	   BlockNode blockNode = new BlockNode(b, parent, uPool);
+	   //parent.children.add(blockNode);
 	   
 	   if (blockNode.height > this.height) {
 		   this.height = blockNode.height;
 		   maxHeightBlock = blockNode; // <-- causing a crash in first Combination Test
+	   }
+	   
+	   if (this.height - heads.get(0).height > CUT_OFF_AGE) {
+		   ArrayList<BlockNode> newHeads = new ArrayList<BlockNode>();
+		   for (BlockNode oldHead : heads) {
+			   for (BlockNode oldHeadChild : oldHead.children) {
+				   newHeads.add(oldHeadChild);
+			   }
+			   H.remove(new ByteArrayWrapper(oldHead.b.getHash()));
+		   }
+		   heads = newHeads;
 	   }
 	   
 	   H.put(new ByteArrayWrapper(b.getHash()), blockNode);
@@ -138,9 +154,7 @@ public class BlockChain {
     */
    public void addTransaction(Transaction tx) {
       // IMPLEMENT THIS
-//	   if (txPool.getTransaction(tx.getHash()) == null) {
-		   txPool.addTransaction(tx);
-	//   }
+	   txPool.addTransaction(tx);
 	   return;
    }
 }

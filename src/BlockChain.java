@@ -106,32 +106,33 @@ public class BlockChain {
 	   }
 	   
 	   UTXOPool uPool = parent.getUTXOPoolCopy();
-
-//       Transaction coinBaseTx = b.getCoinbase();
-//       UTXO coinBaseUTXO = new UTXO(coinBaseTx.getHash(), 0);
-//       uPool.addUTXO(coinBaseUTXO, coinBaseTx.getOutput(0));
-	   
 	   TxHandler txHandler = new TxHandler(uPool);
 	   Transaction bTxs[] = b.getTransactions().toArray(new Transaction[0]);
-	   
 	   Transaction validTxs[];
 	   validTxs = txHandler.handleTxs(bTxs);
-	   if (!Arrays.equals(bTxs, validTxs)) {
+	   if (bTxs.length != validTxs.length) {
 		   //System.out.println("Block Chain: Invalid Transacction");
 		   return false;
 	   }
 
+	   /* Handle the CoinBase */
 	   uPool = txHandler.getUTXOPool();
+	   if (uPool.getAllUTXO().size() == 0) {
+		   return false;
+	   }
 	   Transaction coinBaseTx = b.getCoinbase();
 	   UTXO coinBaseUTXO = new UTXO(coinBaseTx.getHash(), 0);
 	   uPool.addUTXO(coinBaseUTXO, coinBaseTx.getOutput(0));
 	   
+	   for(Transaction t:b.getTransactions())
+		   txPool.removeTransaction(t.getHash());
+	   
 	   BlockNode blockNode = new BlockNode(b, parent, uPool);
-	   //parent.children.add(blockNode);
+	   H.put(new ByteArrayWrapper(b.getHash()), blockNode);
 	   
 	   if (blockNode.height > this.height) {
 		   this.height = blockNode.height;
-		   maxHeightBlock = blockNode; // <-- causing a crash in first Combination Test
+		   maxHeightBlock = blockNode;
 	   }
 	   
 	   if (this.height - heads.get(0).height > CUT_OFF_AGE) {
@@ -142,10 +143,8 @@ public class BlockChain {
 			   }
 			   H.remove(new ByteArrayWrapper(oldHead.b.getHash()));
 		   }
-		   heads = newHeads;
+	       heads = newHeads;
 	   }
-	   
-	   H.put(new ByteArrayWrapper(b.getHash()), blockNode);
 	   
 	   return true;
    }

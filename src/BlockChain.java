@@ -106,6 +106,11 @@ public class BlockChain {
 	   }
 	   
 	   UTXOPool uPool = parent.getUTXOPoolCopy();
+
+       Transaction coinBaseTx = b.getCoinbase();
+       UTXO coinBaseUTXO = new UTXO(coinBaseTx.getHash(), 0);
+       uPool.addUTXO(coinBaseUTXO, coinBaseTx.getOutput(0));
+	   
 	   TxHandler txHandler = new TxHandler(uPool);
 	   Transaction bTxs[] = b.getTransactions().toArray(new Transaction[0]);
 	   

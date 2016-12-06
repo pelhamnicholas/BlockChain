@@ -37,6 +37,12 @@ public class TxHandler {
 			//System.out.println("TxHandler: null starting values");
 			return false;
 		}
+		
+		/*
+		if (tx.isCoinbase()) {
+			return true;
+		}*/
+		
 		for (Transaction.Input i : inputs) {
 			UTXO ut = new UTXO(i.prevTxHash, i.outputIndex);
 			if (!uPool.contains(ut)) {

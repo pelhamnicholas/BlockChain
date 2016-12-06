@@ -34,20 +34,24 @@ public class TxHandler {
 		double value = 0;
 		
 		if (inputs == null || outputs == null || allUTXO == null) {
+			//System.out.println("TxHandler: null starting values");
 			return false;
 		}
 		for (Transaction.Input i : inputs) {
 			UTXO ut = new UTXO(i.prevTxHash, i.outputIndex);
 			if (!uPool.contains(ut)) {
+				//System.out.println("TxHandler: ut not in uPool");
 				return false;
 			}
 			byte[] sig = i.signature;
 			Transaction.Output prevOutput = uPool.getTxOutput(ut);
 			RSAKey pubKey = prevOutput.address;
 			if (pubKey == null || tx == null || i == null || sig == null) {
+				//System.out.println("TxHandler: null validation values");
 				return false;
 			}
 			if (!pubKey.verifySignature(tx.getRawDataToSign(i), sig)) {
+				//System.out.println("TxHandler: invalid signatures");
 				return false;
 			}
 			value += prevOutput.value;
@@ -65,12 +69,14 @@ public class TxHandler {
 			for (int j = i + 1; j < tx.numInputs(); ++j) {
 				UTXO utx = new UTXO(inputs.get(j).prevTxHash, inputs.get(j).outputIndex);
 				if (ut.equals(utx)) {
+					//System.out.println("TxHandler: ut equals utx");
 					return false;
 				}
 			}
 		}
 		
 		if (value < 0) {
+			//System.out.println("TxHandler: invalid transaction value");
 			return false;
 		}
 					

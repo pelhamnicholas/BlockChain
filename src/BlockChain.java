@@ -95,20 +95,24 @@ public class BlockChain {
    public boolean addBlock(Block b) {
        // IMPLEMENT THIS
 	   if (b.getPrevBlockHash() == null) {
+		   System.out.println("Block Chain: Genesis block");
 		   return false;
 	   }
 	   BlockNode parent = H.get(new ByteArrayWrapper(b.getPrevBlockHash()));
 	   
-	   if (parent == null || parent.height == CUT_OFF_AGE) {
+	   if (parent == null) {
+		   System.out.println("Block Chain: parent = null");
 		   return false;
 	   }
 	   
 	   UTXOPool uPool = parent.getUTXOPoolCopy();
 	   TxHandler txHandler = new TxHandler(uPool);
 	   Transaction bTxs[] = b.getTransactions().toArray(new Transaction[0]);
+	   
 	   Transaction validTxs[];
 	   validTxs = txHandler.handleTxs(bTxs);
 	   if (!Arrays.equals(bTxs, validTxs)) {
+		   System.out.println("Block Chain: Invalid Transacction");
 		   return false;
 	   }
 	   
@@ -117,7 +121,7 @@ public class BlockChain {
 	   
 	   if (blockNode.height > this.height) {
 		   this.height = blockNode.height;
-		   //maxHeightBlock = blockNode; // <-- causing a crash in first Combination Test
+		   maxHeightBlock = blockNode; // <-- causing a crash in first Combination Test
 	   }
 	   
 	   H.put(new ByteArrayWrapper(b.getHash()), blockNode);
@@ -129,9 +133,9 @@ public class BlockChain {
     */
    public void addTransaction(Transaction tx) {
       // IMPLEMENT THIS
-	   if (txPool.getTransaction(tx.getHash()) == null) {
+//	   if (txPool.getTransaction(tx.getHash()) == null) {
 		   txPool.addTransaction(tx);
-	   }
+	//   }
 	   return;
    }
 }

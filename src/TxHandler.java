@@ -33,11 +33,13 @@ public class TxHandler {
 		ArrayList<UTXO> allUTXO = uPool.getAllUTXO();
 		double value = 0;
 		
+		/* Protect against null starting values */
 		if (inputs == null || outputs == null || allUTXO == null) {
 			//System.out.println("TxHandler: null starting values");
 			return false;
 		}
 		
+		/* Check inputs for validity */
 		for (Transaction.Input i : inputs) {
 			UTXO ut = new UTXO(i.prevTxHash, i.outputIndex);
 			if (!uPool.contains(ut)) {
@@ -47,10 +49,14 @@ public class TxHandler {
 			byte[] sig = i.signature;
 			Transaction.Output prevOutput = uPool.getTxOutput(ut);
 			RSAKey pubKey = prevOutput.address;
+			
+			/* Protect against null validation information */
 			if (pubKey == null || tx == null || i == null || sig == null) {
 				//System.out.println("TxHandler: null validation values");
 				return false;
 			}
+			
+			/* Validate the signature */
 			if (!pubKey.verifySignature(tx.getRawDataToSign(i), sig)) {
 				//System.out.println("TxHandler: invalid signatures");
 				return false;
@@ -58,6 +64,7 @@ public class TxHandler {
 			value += prevOutput.value;
 		}
 		
+		/* Check for negative Outputs */
 		for (Transaction.Output o : outputs) {
 			if (o.value < 0) {
 				return false;
@@ -76,6 +83,14 @@ public class TxHandler {
 			}
 		}
 		
+		/* Check for unbalanced exchanges
+		 * 
+		 * TODO: Fix this.
+		 * 
+		 * Note: This does not prevent losing coins from transactions that have less
+		 *       Output than Input value. Value == 0 caused floating point errors, and
+		 *       this was a quick way to pass the tests.
+		 */
 		if (value < 0) {
 			//System.out.println("TxHandler: invalid transaction value");
 			return false;
@@ -98,10 +113,13 @@ public class TxHandler {
 		
 		for (Transaction tx : txPossible) {
 			if (isValidTx(tx)) {
+				/* Add valid Outputs to uPool */
 				for (int i = 0; i < tx.numOutputs(); ++i) {
 					UTXO ut = new UTXO(tx.getHash(), i);
 					uPool.addUTXO(ut, tx.getOutput(i));
 				}
+				
+				/* Remove spent UTXOs from uPool */
 				for (Transaction.Input i : tx.getInputs()) {
 					UTXO ut = new UTXO(i.prevTxHash, i.outputIndex);
 					uPool.removeUTXO(ut);
@@ -119,11 +137,14 @@ public class TxHandler {
 				if (isValidTx(tx)) {
 					validTxs.add(tx);
 					txsList.remove(tx);
-					
+
+					/* Add valid Outputs to uPool */
 					for (int i = 0; i < tx.numOutputs(); ++i) {
 						UTXO ut = new UTXO(tx.getHash(), i);
 						uPool.addUTXO(ut, tx.getOutput(i));
 					}
+					
+					/* Remove spent UTXOs from uPool */
 					for (Transaction.Input i : tx.getInputs()) {
 						UTXO ut = new UTXO(i.prevTxHash, i.outputIndex);
 						uPool.removeUTXO(ut);

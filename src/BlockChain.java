@@ -115,7 +115,7 @@ public class BlockChain {
 	   Transaction validTxs[];
 	   validTxs = txHandler.handleTxs(bTxs);
 	   if (bTxs.length != validTxs.length) {
-		   //System.out.println("Block Chain: Invalid Transacction");
+		   //System.out.println("Block Chain: Invalid Transaction");
 		   return false;
 	   }
 
